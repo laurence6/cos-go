@@ -14,7 +14,7 @@ import (
 	"time"
 )
 
-const COSEndPoint = "https://web.file.myqcloud.com/files/v1/"
+const COSEndPoint = "http://web.file.myqcloud.com/files/v1/"
 const ExpiredSeconds = 60
 
 type Config struct {
@@ -206,7 +206,6 @@ func (cos *Cos) uploadSliceData(filecontent []byte, bucket, path, session string
 }
 
 func (cos *Cos) UploadSlice(file io.ReadSeeker, bucket, path string) (ret map[string]interface{}, err error) {
-
 	hash := sha1.New()
 	fileSize, err := io.Copy(hash, file)
 	if err != nil {
@@ -219,6 +218,7 @@ func (cos *Cos) UploadSlice(file io.ReadSeeker, bucket, path string) (ret map[st
 	ret, err = cos.uploadSlicePrepare(bucket, path, fileSize, sha)
 
 	sliceBuffer := &bytes.Buffer{}
+	var session string
 	var offset int64
 	var sliceSize int64
 	for {
@@ -234,7 +234,9 @@ func (cos *Cos) UploadSlice(file io.ReadSeeker, bucket, path string) (ret map[st
 			return
 		}
 
-		session := data["session"].(string)
+		if session == "" {
+			session = data["session"].(string)
+		}
 		if offset == 0 {
 			offset = int64(data["offset"].(float64))
 		}
