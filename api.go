@@ -14,8 +14,13 @@ import (
 	"time"
 )
 
-const COSEndPoint = "http://web.file.myqcloud.com/files/v1/"
-const ExpiredSeconds = 60
+const (
+	COSEndPoint    = "http://web.file.myqcloud.com/files/v1/"
+	ExpiredSeconds = 60
+	ListBoth       = "eListBoth"
+	ListFileOnly   = "eListFileOnly"
+	ListDirOnly    = "eListDirOnly"
+)
 
 type Config struct {
 	Appid     string
