@@ -134,3 +134,28 @@ func (cos *Cos) Scan(bucket, path string, depth int8) (ret []map[string]interfac
 	ret = append(ret, files...)
 	return
 }
+
+func (cos *Cos) Delete(bucket, path string) (ret *CosResponse, err error) {
+	fileList, err := cos.Scan(bucket, path, -1)
+	if err != nil {
+		return
+	}
+	for i := len(fileList) - 1; i >= 0; i-- {
+		if _, ok := fileList[i]["sha"]; ok {
+			ret, err = cos.DeleteFile(bucket, fileList[i]["path"].(string))
+		} else {
+			ret, err = cos.DeleteFolder(bucket, fileList[i]["path"].(string))
+		}
+		if err != nil {
+			return ret, err
+		}
+	}
+	if len(fileList) == 1 && fileList[0]["path"] == path {
+		return
+	}
+	ret, err = cos.DeleteFolder(bucket, path)
+	if err != nil {
+		return
+	}
+	return
+}
