@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"time"
 )
 
 func NormPath(path string) string {
@@ -157,5 +158,37 @@ func (cos *Cos) Delete(bucket, path string) (ret *CosResponse, err error) {
 	if err != nil {
 		return
 	}
+	return
+}
+
+func (cos *Cos) GetURLWithToken(bucket, path string, expireTime int64) string {
+	expired := time.Now().Unix() + expireTime
+	sign := cos.SignMore("debian", expired)
+	return fmt.Sprintf("%s?sign=%s", cos.GetResURL(bucket, path), sign)
+}
+
+func (cos *Cos) IsBucketPublic(bucket string) (ret bool, err error) {
+	response, err := cos.StatFile(bucket, "/")
+	if err != nil {
+		return
+	}
+	if authority := response.Data["authority"].(string); authority == "eWPrivateRPublic" {
+		ret = true
+	} else if authority == "eWRPrivate" {
+		ret = false
+	}
+	return
+}
+
+func (cos *Cos) GetSHA(bucket, path string) (ret string, err error) {
+	response, err := cos.StatFile(bucket, path)
+	if err != nil {
+		return
+	}
+	sha, ok := response.Data["sha"]
+	if !ok {
+		return
+	}
+	ret = sha.(string)
 	return
 }
