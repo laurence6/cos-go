@@ -2,7 +2,9 @@ package cos
 
 import (
 	"fmt"
+	"io"
 	"io/ioutil"
+	"net/http"
 	"net/url"
 	"os"
 	"strings"
@@ -161,10 +163,14 @@ func (cos *Cos) Delete(bucket, path string) (ret *CosResponse, err error) {
 	return
 }
 
-func (cos *Cos) GetURLWithToken(bucket, path string, expireTime int64) string {
+func (cos *Cos) GetAccessURL(bucket, path string) string {
+	return fmt.Sprintf("http://%s-%s.file.myqcloud.com/%s", bucket, cos.Appid, path)
+}
+
+func (cos *Cos) GetAccessURLWithToken(bucket, path string, expireTime int64) string {
 	expired := time.Now().Unix() + expireTime
 	sign := cos.SignMore("debian", expired)
-	return fmt.Sprintf("%s?sign=%s", cos.GetResURL(bucket, path), sign)
+	return fmt.Sprintf("%s?sign=%s", cos.GetAccessURL(bucket, path), sign)
 }
 
 func (cos *Cos) IsBucketPublic(bucket string) (ret bool, err error) {
@@ -176,6 +182,54 @@ func (cos *Cos) IsBucketPublic(bucket string) (ret bool, err error) {
 		ret = true
 	} else if authority == "eWRPrivate" {
 		ret = false
+	}
+	return
+}
+
+func (cos *Cos) DownloadFile(bucket, path, localPath string) (err error) {
+	isPublic, err := cos.IsBucketPublic(bucket)
+	if err != nil {
+		return
+	}
+	URL := ""
+	if isPublic {
+		URL = cos.GetAccessURL(bucket, path)
+	} else {
+		URL = cos.GetAccessURLWithToken(bucket, path, 86400)
+	}
+	file, err := os.Create(localPath)
+	if err != nil {
+		return
+	}
+	defer file.Close()
+	response, err := http.Get(URL)
+	if err != nil {
+		return
+	}
+	defer response.Body.Close()
+	_, err = io.Copy(file, response.Body)
+	if err != nil {
+		return
+	}
+	return
+}
+
+func (cos *Cos) DownloadFolder(bucket, path, localPath string) (err error) {
+	err = os.MkdirAll(localPath, 0755)
+	if err != nil {
+		return
+	}
+	fileList, err := cos.Scan(bucket, path, -1)
+	for _, i := range fileList {
+		dstPath := strings.Replace(i["path"].(string), path, localPath, 1)
+		if _, ok := i["sha"]; ok {
+			err = cos.DownloadFile(bucket, i["path"].(string), dstPath)
+		} else {
+			err = os.MkdirAll(dstPath, 0755)
+		}
+		if err != nil {
+			return
+		}
 	}
 	return
 }

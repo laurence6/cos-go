@@ -16,7 +16,7 @@ import (
 
 const (
 	COSEndPoint    = "http://web.file.myqcloud.com/files/v1/"
-	ExpiredSeconds = 60
+	ExpiredSeconds = 600
 	ListBoth       = "eListBoth"
 	ListFileOnly   = "eListFileOnly"
 	ListDirOnly    = "eListDirOnly"
