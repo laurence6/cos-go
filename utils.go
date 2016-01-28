@@ -91,7 +91,7 @@ func (cos *Cos) UploadFolder(folderPath, bucket, path string) (ret *CosResponse,
 * depth < 0:
 *     scan recursively
  */
-func (cos *Cos) Scan(bucket, path string, depth int8) (ret []map[string]interface{}, err error) {
+func (cos *Cos) Scan(bucket, path string, depth int) (ret []map[string]interface{}, err error) {
 	if depth == 0 {
 		return
 	}
@@ -103,10 +103,11 @@ func (cos *Cos) Scan(bucket, path string, depth int8) (ret []map[string]interfac
 		if err != nil || response.Code != 0 {
 			if response.Code == -166 { // Treat as a file
 				response, err := cos.StatFile(bucket, path)
-				data := response.Data
-				data["path"] = path
-				ret = append(ret, data)
-				return ret, err
+				if err == nil && response.Code == 0 {
+					data := response.Data
+					data["path"] = path
+					ret = append(ret, data)
+				}
 			}
 			return ret, err
 		}
