@@ -175,7 +175,7 @@ func (cos *Cos) GetAccessURLWithToken(bucket, path string, expireTime int64) str
 }
 
 func (cos *Cos) IsBucketPublic(bucket string) (ret bool, err error) {
-	response, err := cos.StatFile(bucket, "/")
+	response, err := cos.stat(bucket, "")
 	if err != nil {
 		return
 	}
