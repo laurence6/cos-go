@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -69,19 +70,22 @@ func (cos *Cos) UploadFolder(folderPath, bucket, path string) (ret *CosResponse,
 	if err != nil {
 		return
 	}
+	wg := sync.WaitGroup{}
 	for _, i := range list {
+		wg.Add(1)
 		if i.IsDir() {
-			ret, err := cos.UploadFolder(folderPath+"/"+i.Name(), bucket, path+"/"+i.Name())
-			if err != nil {
-				return ret, err
-			}
+			go func(name string) {
+				defer wg.Done()
+				cos.UploadFolder(folderPath+"/"+name, bucket, path+"/"+name)
+			}(i.Name())
 		} else {
-			ret, err := cos.UploadFile(folderPath+"/"+i.Name(), bucket, path+"/"+i.Name())
-			if err != nil {
-				return ret, err
-			}
+			go func(name string) {
+				defer wg.Done()
+				cos.UploadFile(folderPath+"/"+name, bucket, path+"/"+name)
+			}(i.Name())
 		}
 	}
+	wg.Wait()
 	return
 }
 
@@ -127,33 +131,52 @@ func (cos *Cos) Scan(bucket, path string, depth int) (ret []map[string]interface
 		}
 		context = data["context"].(string)
 	}
-	for _, d := range dirs {
-		ret = append(ret, d)
-		_list, err := cos.Scan(bucket, d["path"].(string), depth-1)
-		if err != nil {
-			return ret, err
+	ret = append(ret, dirs...)
+	if depth != 1 {
+		wg := sync.WaitGroup{}
+		ch := make(chan []map[string]interface{}, len(dirs))
+		for _, d := range dirs {
+			wg.Add(1)
+			go func(path string) {
+				defer wg.Done()
+				list, err := cos.Scan(bucket, path, depth-1)
+				if err != nil {
+					return
+				}
+				ch <- list
+			}(d["path"].(string))
 		}
-		ret = append(ret, _list...)
+		wg.Wait()
+		for i := 0; i < len(dirs); i++ {
+			ret = append(ret, <-ch...)
+		}
+		close(ch)
 	}
 	ret = append(ret, files...)
 	return
 }
 
 func (cos *Cos) Delete(bucket, path string) (ret *CosResponse, err error) {
-	fileList, err := cos.Scan(bucket, path, -1)
+	fileList, err := cos.Scan(bucket, path, 1)
 	if err != nil {
 		return
 	}
-	for i := len(fileList) - 1; i >= 0; i-- {
-		if _, ok := fileList[i]["sha"]; ok {
-			ret, err = cos.DeleteFile(bucket, fileList[i]["path"].(string))
+	wg := sync.WaitGroup{}
+	for _, i := range fileList {
+		wg.Add(1)
+		if _, ok := i["sha"]; ok {
+			go func(name string) {
+				defer wg.Done()
+				cos.DeleteFile(bucket, name)
+			}(i["path"].(string))
 		} else {
-			ret, err = cos.DeleteFolder(bucket, fileList[i]["path"].(string))
-		}
-		if err != nil {
-			return ret, err
+			go func(name string) {
+				defer wg.Done()
+				cos.Delete(bucket, name)
+			}(i["path"].(string))
 		}
 	}
+	wg.Wait()
 	if len(fileList) == 1 && fileList[0]["path"] == path {
 		return
 	}
@@ -222,16 +245,24 @@ func (cos *Cos) DownloadFolder(bucket, path, localPath string) (err error) {
 	}
 	fileList, err := cos.Scan(bucket, path, -1)
 	for _, i := range fileList {
-		dstPath := strings.Replace(i["path"].(string), path, localPath, 1)
-		if _, ok := i["sha"]; ok {
-			err = cos.DownloadFile(bucket, i["path"].(string), dstPath)
-		} else {
-			err = os.MkdirAll(dstPath, 0755)
-		}
-		if err != nil {
-			return
+		if _, ok := i["sha"]; !ok {
+			err = os.MkdirAll(strings.Replace(i["path"].(string), path, localPath, 1), 0755)
+			if err != nil {
+				return
+			}
 		}
 	}
+	wg := sync.WaitGroup{}
+	for _, i := range fileList {
+		if _, ok := i["sha"]; ok {
+			wg.Add(1)
+			go func(path, dstPath string) {
+				defer wg.Done()
+				cos.DownloadFile(bucket, path, dstPath)
+			}(i["path"].(string), strings.Replace(i["path"].(string), path, localPath, 1))
+		}
+	}
+	wg.Wait()
 	return
 }
 
