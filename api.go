@@ -224,7 +224,7 @@ func (cos *Cos) UploadSlice(file io.ReadSeeker, bucket, path string) (ret *CosRe
 			return
 		}
 		_, err = io.CopyN(sliceBuffer, file, sliceSize)
-		if err != nil {
+		if err != nil && err != io.EOF {
 			return
 		}
 		slice, _ := ioutil.ReadAll(sliceBuffer)
