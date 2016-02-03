@@ -105,7 +105,7 @@ func (cos *Cos) Scan(bucket, path string, depth int) (ret []map[string]interface
 	for {
 		response, err := cos.List(bucket, path, 100, "eListBoth", 0, context)
 		if err != nil || response.Code != 0 {
-			if response.Code == -166 { // Treat as a file
+			if err == nil && response.Code == -166 { // Treat as a file
 				response, err := cos.StatFile(bucket, path)
 				if err == nil && response.Code == 0 {
 					data := response.Data
