@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -11,6 +12,8 @@ import (
 	"sync"
 	"time"
 )
+
+var logger = log.New(os.Stdout, "", log.LstdFlags)
 
 func NormPath(path string) string {
 	path = strings.Trim(path, "/")
@@ -58,6 +61,11 @@ func (cos *Cos) UploadFile(filePath, bucket, path string) (ret *CosResponse, err
 	} else {
 		ret, err = cos.UploadSlice(file, bucket, path)
 	}
+	if err != nil {
+		return
+	} else {
+		logger.Printf("%v: %v", path, ret.Message)
+	}
 	return
 }
 
@@ -69,6 +77,8 @@ func (cos *Cos) UploadFolder(folderPath, bucket, path string) (ret *CosResponse,
 	ret, err = cos.CreateFolder(bucket, path)
 	if err != nil {
 		return
+	} else {
+		logger.Printf("%v: %v", path, ret.Message)
 	}
 	wg := sync.WaitGroup{}
 	for _, i := range list {
@@ -167,7 +177,12 @@ func (cos *Cos) Delete(bucket, path string) (ret *CosResponse, err error) {
 		if _, ok := i["sha"]; ok {
 			go func(name string) {
 				defer wg.Done()
-				cos.DeleteFile(bucket, name)
+				ret, err := cos.DeleteFile(bucket, name)
+				if err != nil {
+					logger.Printf("%v: Error: %v", path, err.Error())
+				} else {
+					logger.Printf("%v: %v", path, ret.Message)
+				}
 			}(i["path"].(string))
 		} else {
 			go func(name string) {
@@ -183,6 +198,8 @@ func (cos *Cos) Delete(bucket, path string) (ret *CosResponse, err error) {
 	ret, err = cos.DeleteFolder(bucket, path)
 	if err != nil {
 		return
+	} else {
+		logger.Printf("%v: %v", path, ret.Message)
 	}
 	return
 }
@@ -234,6 +251,8 @@ func (cos *Cos) DownloadFile(bucket, path, localPath string) (err error) {
 	_, err = io.Copy(file, response.Body)
 	if err != nil {
 		return
+	} else {
+		logger.Printf("%v: %v", localPath, "成功")
 	}
 	return
 }
@@ -246,9 +265,12 @@ func (cos *Cos) DownloadFolder(bucket, path, localPath string) (err error) {
 	fileList, err := cos.Scan(bucket, path, -1)
 	for _, i := range fileList {
 		if _, ok := i["sha"]; !ok {
-			err = os.MkdirAll(strings.Replace(i["path"].(string), path, localPath, 1), 0755)
+			dstPath := strings.Replace(i["path"].(string), path, localPath, 1)
+			err = os.MkdirAll(dstPath, 0755)
 			if err != nil {
 				return
+			} else {
+				logger.Printf("%v: %v", dstPath, "成功")
 			}
 		}
 	}
