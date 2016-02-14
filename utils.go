@@ -13,8 +13,6 @@ import (
 	"time"
 )
 
-var logger = log.New(os.Stdout, "", log.LstdFlags)
-
 func NormPath(path string) string {
 	path = strings.Trim(path, "/")
 	if path == "" {
@@ -64,7 +62,7 @@ func (cos *Cos) UploadFile(filePath, bucket, path string) (ret *CosResponse, err
 	if err != nil {
 		return
 	} else {
-		logger.Printf("%v: %v", path, ret.Message)
+		log.Printf("%v: %v", path, ret.Message)
 	}
 	return
 }
@@ -78,7 +76,7 @@ func (cos *Cos) UploadFolder(folderPath, bucket, path string) (ret *CosResponse,
 	if err != nil {
 		return
 	} else {
-		logger.Printf("%v: %v", path, ret.Message)
+		log.Printf("%v: %v", path, ret.Message)
 	}
 	wg := sync.WaitGroup{}
 	for _, i := range list {
@@ -179,9 +177,9 @@ func (cos *Cos) Delete(bucket, path string) (ret *CosResponse, err error) {
 				defer wg.Done()
 				ret, err := cos.DeleteFile(bucket, name)
 				if err != nil {
-					logger.Printf("%v: Error: %v", path, err.Error())
+					log.Printf("%v: Error: %v", path, err.Error())
 				} else {
-					logger.Printf("%v: %v", path, ret.Message)
+					log.Printf("%v: %v", path, ret.Message)
 				}
 			}(i["path"].(string))
 		} else {
@@ -199,7 +197,7 @@ func (cos *Cos) Delete(bucket, path string) (ret *CosResponse, err error) {
 	if err != nil {
 		return
 	} else {
-		logger.Printf("%v: %v", path, ret.Message)
+		log.Printf("%v: %v", path, ret.Message)
 	}
 	return
 }
@@ -252,7 +250,7 @@ func (cos *Cos) DownloadFile(bucket, path, localPath string) (err error) {
 	if err != nil {
 		return
 	} else {
-		logger.Printf("%v: %v", localPath, "成功")
+		log.Printf("%v: %v", localPath, "成功")
 	}
 	return
 }
@@ -270,7 +268,7 @@ func (cos *Cos) DownloadFolder(bucket, path, localPath string) (err error) {
 			if err != nil {
 				return
 			} else {
-				logger.Printf("%v: %v", dstPath, "成功")
+				log.Printf("%v: %v", dstPath, "成功")
 			}
 		}
 	}
