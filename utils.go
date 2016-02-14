@@ -61,9 +61,8 @@ func (cos *Cos) UploadFile(filePath, bucket, path string) (ret *CosResponse, err
 	}
 	if err != nil {
 		return
-	} else {
-		log.Printf("%v: %v", path, ret.Message)
 	}
+	log.Printf("%v: %v", path, ret.Message)
 	return
 }
 
@@ -75,9 +74,8 @@ func (cos *Cos) UploadFolder(folderPath, bucket, path string) (ret *CosResponse,
 	ret, err = cos.CreateFolder(bucket, path)
 	if err != nil {
 		return
-	} else {
-		log.Printf("%v: %v", path, ret.Message)
 	}
+	log.Printf("%v: %v", path, ret.Message)
 	wg := sync.WaitGroup{}
 	for _, i := range list {
 		wg.Add(1)
@@ -196,9 +194,8 @@ func (cos *Cos) Delete(bucket, path string) (ret *CosResponse, err error) {
 	ret, err = cos.DeleteFolder(bucket, path)
 	if err != nil {
 		return
-	} else {
-		log.Printf("%v: %v", path, ret.Message)
 	}
+	log.Printf("%v: %v", path, ret.Message)
 	return
 }
 
@@ -249,9 +246,8 @@ func (cos *Cos) DownloadFile(bucket, path, localPath string) (err error) {
 	_, err = io.Copy(file, response.Body)
 	if err != nil {
 		return
-	} else {
-		log.Printf("%v: %v", localPath, "成功")
 	}
+	log.Printf("%v: %v", localPath, "成功")
 	return
 }
 
@@ -267,9 +263,8 @@ func (cos *Cos) DownloadFolder(bucket, path, localPath string) (err error) {
 			err = os.MkdirAll(dstPath, 0755)
 			if err != nil {
 				return
-			} else {
-				log.Printf("%v: %v", dstPath, "成功")
 			}
+			log.Printf("%v: %v", dstPath, "成功")
 		}
 	}
 	wg := sync.WaitGroup{}
