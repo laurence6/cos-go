@@ -9,7 +9,6 @@ import (
 	"net/url"
 	"os"
 	"strings"
-	"sync"
 	"time"
 )
 
@@ -66,32 +65,49 @@ func (cos *Cos) UploadFile(filePath, bucket, path string) (ret *CosResponse, err
 	return
 }
 
-func (cos *Cos) UploadFolder(folderPath, bucket, path string) (ret *CosResponse, err error) {
+func (cos *Cos) UploadFolder(folderPath, bucket, path string) (ret []*CosResponse, err error) {
 	list, err := ioutil.ReadDir(folderPath)
 	if err != nil {
 		return
 	}
-	ret, err = cos.CreateFolder(bucket, path)
+	r, err := cos.CreateFolder(bucket, path)
 	if err != nil {
 		return
 	}
-	log.Printf("%v: %v", path, ret.Message)
-	wg := sync.WaitGroup{}
+	log.Printf("%v: %v", path, r.Message)
+	ret = append(ret, r)
+	chRet := make(chan []*CosResponse)
+	chErr := make(chan error)
 	for _, i := range list {
-		wg.Add(1)
 		if i.IsDir() {
 			go func(name string) {
-				defer wg.Done()
-				cos.UploadFolder(folderPath+"/"+name, bucket, path+"/"+name)
+				ret, err := cos.UploadFolder(folderPath+"/"+name, bucket, path+"/"+name)
+				if err != nil {
+					chErr <- err
+					return
+				}
+				chRet <- ret
 			}(i.Name())
 		} else {
 			go func(name string) {
-				defer wg.Done()
-				cos.UploadFile(folderPath+"/"+name, bucket, path+"/"+name)
+				ret, err := cos.UploadFile(folderPath+"/"+name, bucket, path+"/"+name)
+				if err != nil {
+					chErr <- err
+				}
+				chRet <- []*CosResponse{ret}
 			}(i.Name())
 		}
 	}
-	wg.Wait()
+	for range list {
+		select {
+		case r := <-chRet:
+			for _, _r := range r {
+				ret = append(ret, _r)
+			}
+		case err = <-chErr:
+			return
+		}
+	}
 	return
 }
 
@@ -139,12 +155,9 @@ func (cos *Cos) Scan(bucket, path string, depth int) (ret []map[string]interface
 	}
 	ret = append(ret, dirs...)
 	if depth != 1 {
-		wg := sync.WaitGroup{}
-		ch := make(chan []map[string]interface{}, len(dirs))
+		ch := make(chan []map[string]interface{})
 		for _, d := range dirs {
-			wg.Add(1)
 			go func(path string) {
-				defer wg.Done()
 				list, err := cos.Scan(bucket, path, depth-1)
 				if err != nil {
 					return
@@ -152,8 +165,7 @@ func (cos *Cos) Scan(bucket, path string, depth int) (ret []map[string]interface
 				ch <- list
 			}(d["path"].(string))
 		}
-		wg.Wait()
-		for i := 0; i < len(dirs); i++ {
+		for range dirs {
 			ret = append(ret, <-ch...)
 		}
 		close(ch)
@@ -162,40 +174,54 @@ func (cos *Cos) Scan(bucket, path string, depth int) (ret []map[string]interface
 	return
 }
 
-func (cos *Cos) Delete(bucket, path string) (ret *CosResponse, err error) {
+func (cos *Cos) Delete(bucket, path string) (ret []*CosResponse, err error) {
 	fileList, err := cos.Scan(bucket, path, 1)
 	if err != nil {
 		return
 	}
-	wg := sync.WaitGroup{}
+	chRet := make(chan []*CosResponse)
+	chErr := make(chan error)
 	for _, i := range fileList {
-		wg.Add(1)
 		if _, ok := i["sha"]; ok {
 			go func(name string) {
-				defer wg.Done()
 				ret, err := cos.DeleteFile(bucket, name)
 				if err != nil {
-					log.Printf("%v: Error: %v", path, err.Error())
-				} else {
-					log.Printf("%v: %v", path, ret.Message)
+					chErr <- err
+					return
 				}
+				log.Printf("%v: %v", path, ret.Message)
+				chRet <- []*CosResponse{ret}
 			}(i["path"].(string))
 		} else {
 			go func(name string) {
-				defer wg.Done()
-				cos.Delete(bucket, name)
+				ret, err := cos.Delete(bucket, name)
+				if err != nil {
+					chErr <- err
+					return
+				}
+				chRet <- ret
 			}(i["path"].(string))
 		}
 	}
-	wg.Wait()
+	for range fileList {
+		select {
+		case r := <-chRet:
+			for _, _r := range r {
+				ret = append(ret, _r)
+			}
+		case err = <-chErr:
+			return
+		}
+	}
 	if len(fileList) == 1 && fileList[0]["path"] == path {
 		return
 	}
-	ret, err = cos.DeleteFolder(bucket, path)
+	r, err := cos.DeleteFolder(bucket, path)
 	if err != nil {
 		return
 	}
-	log.Printf("%v: %v", path, ret.Message)
+	log.Printf("%v: %v", path, r.Message)
+	ret = append(ret, r)
 	return
 }
 
@@ -267,17 +293,25 @@ func (cos *Cos) DownloadFolder(bucket, path, localPath string) (err error) {
 			log.Printf("%v: %v", dstPath, "成功")
 		}
 	}
-	wg := sync.WaitGroup{}
+	chErr := make(chan error)
 	for _, i := range fileList {
 		if _, ok := i["sha"]; ok {
-			wg.Add(1)
 			go func(path, dstPath string) {
-				defer wg.Done()
-				cos.DownloadFile(bucket, path, dstPath)
+				err := cos.DownloadFile(bucket, path, dstPath)
+				if err != nil {
+					chErr <- err
+					return
+				}
+				chErr <- nil
 			}(i["path"].(string), strings.Replace(i["path"].(string), path, localPath, 1))
 		}
 	}
-	wg.Wait()
+	for range fileList {
+		err = <-chErr
+		if err != nil {
+			return
+		}
+	}
 	return
 }
 
