@@ -34,7 +34,7 @@ type Cos struct {
 	Client         http.Client
 }
 
-type CosResponse struct {
+type Response struct {
 	HTTPCode int
 	Code     int64                  `json:"code"`
 	Message  string                 `json:"message"`
@@ -49,10 +49,10 @@ func getParams(values map[string]interface{}) string {
 	return "?" + params.Encode()
 }
 
-func ProcessResponse(httpResponse *http.Response) (cosResponse *CosResponse, err error) {
+func ProcessResponse(httpResponse *http.Response) (cosResponse *Response, err error) {
 	bodyBytes, _ := ioutil.ReadAll(httpResponse.Body)
 	body := string(bodyBytes)
-	cosResponse = &CosResponse{HTTPCode: httpResponse.StatusCode, Data: map[string]interface{}{}}
+	cosResponse = &Response{HTTPCode: httpResponse.StatusCode, Data: map[string]interface{}{}}
 	err = json.Unmarshal([]byte(body), cosResponse)
 	if err != nil {
 		return
@@ -73,7 +73,7 @@ func (cos *Cos) GetResURL(bucket, path string) string {
 	return COSEndPoint + cos.Appid + "/" + bucket + "/" + path
 }
 
-func (cos *Cos) CreateFolder(bucket, path string) (ret *CosResponse, err error) {
+func (cos *Cos) CreateFolder(bucket, path string) (ret *Response, err error) {
 	bucket = strings.Trim(bucket, "/")
 	path, _ = GetURLSafePath(NormPath(path) + "/")
 	requestURL := cos.GetResURL(bucket, path)
@@ -93,7 +93,7 @@ func (cos *Cos) CreateFolder(bucket, path string) (ret *CosResponse, err error) 
 	return
 }
 
-func (cos *Cos) Upload(file io.Reader, bucket, path string) (ret *CosResponse, err error) {
+func (cos *Cos) Upload(file io.Reader, bucket, path string) (ret *Response, err error) {
 	filecontent, err := ioutil.ReadAll(file)
 	if err != nil {
 		return
@@ -128,7 +128,7 @@ func (cos *Cos) Upload(file io.Reader, bucket, path string) (ret *CosResponse, e
 	return
 }
 
-func (cos *Cos) uploadSlicePrepare(bucket, path string, fileSize int64, sha string) (ret *CosResponse, err error) {
+func (cos *Cos) uploadSlicePrepare(bucket, path string, fileSize int64, sha string) (ret *Response, err error) {
 	requestURL := cos.GetResURL(bucket, path)
 	expired := cos.getExpired()
 	sign := cos.SignMore(bucket, expired)
@@ -152,7 +152,7 @@ func (cos *Cos) uploadSlicePrepare(bucket, path string, fileSize int64, sha stri
 	return
 }
 
-func (cos *Cos) uploadSliceData(filecontent []byte, bucket, path, session string, offset int64) (ret *CosResponse, err error) {
+func (cos *Cos) uploadSliceData(filecontent []byte, bucket, path, session string, offset int64) (ret *Response, err error) {
 	sha := fmt.Sprintf("%x", sha1.Sum(filecontent))
 	requestURL := cos.GetResURL(bucket, path)
 	expired := cos.getExpired()
@@ -183,7 +183,7 @@ func (cos *Cos) uploadSliceData(filecontent []byte, bucket, path, session string
 	return
 }
 
-func (cos *Cos) UploadSlice(file io.ReadSeeker, bucket, path string) (ret *CosResponse, err error) {
+func (cos *Cos) UploadSlice(file io.ReadSeeker, bucket, path string) (ret *Response, err error) {
 	hash := sha1.New()
 	fileSize, err := io.Copy(hash, file)
 	if err != nil {
@@ -239,7 +239,7 @@ func (cos *Cos) UploadSlice(file io.ReadSeeker, bucket, path string) (ret *CosRe
 	return
 }
 
-func (cos *Cos) delete(bucket, path string) (ret *CosResponse, err error) {
+func (cos *Cos) delete(bucket, path string) (ret *Response, err error) {
 	if path == "" || path == "/" {
 		return
 	}
@@ -260,17 +260,17 @@ func (cos *Cos) delete(bucket, path string) (ret *CosResponse, err error) {
 	return
 }
 
-func (cos *Cos) DeleteFile(bucket, path string) (*CosResponse, error) {
+func (cos *Cos) DeleteFile(bucket, path string) (*Response, error) {
 	path, _ = GetURLSafePath(NormPath(path))
 	return cos.delete(bucket, path)
 }
 
-func (cos *Cos) DeleteFolder(bucket, path string) (*CosResponse, error) {
+func (cos *Cos) DeleteFolder(bucket, path string) (*Response, error) {
 	path, _ = GetURLSafePath(NormPath(path) + "/")
 	return cos.delete(bucket, path)
 }
 
-func (cos *Cos) List(bucket, path string, num uint64, pattern string, order int8, context string) (ret *CosResponse, err error) {
+func (cos *Cos) List(bucket, path string, num uint64, pattern string, order int8, context string) (ret *Response, err error) {
 	bucket = strings.Trim(bucket, "/")
 	path, _ = GetURLSafePath(NormPath(path) + "/")
 	params := map[string]interface{}{"op": "list"}
@@ -307,7 +307,7 @@ func (cos *Cos) List(bucket, path string, num uint64, pattern string, order int8
 	return
 }
 
-func (cos *Cos) stat(bucket, path string) (ret *CosResponse, err error) {
+func (cos *Cos) stat(bucket, path string) (ret *Response, err error) {
 	bucket = strings.Trim(bucket, "/")
 	requestURL := cos.GetResURL(bucket, path) + getParams(map[string]interface{}{"op": "stat"})
 	expired := cos.getExpired()
@@ -324,12 +324,12 @@ func (cos *Cos) stat(bucket, path string) (ret *CosResponse, err error) {
 	return
 }
 
-func (cos *Cos) StatFile(bucket, path string) (*CosResponse, error) {
+func (cos *Cos) StatFile(bucket, path string) (*Response, error) {
 	path, _ = GetURLSafePath(NormPath(path))
 	return cos.stat(bucket, path)
 }
 
-func (cos *Cos) StatFolder(bucket, path string) (*CosResponse, error) {
+func (cos *Cos) StatFolder(bucket, path string) (*Response, error) {
 	path, _ = GetURLSafePath(NormPath(path) + "/")
 	return cos.stat(bucket, path)
 }

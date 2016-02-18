@@ -29,7 +29,7 @@ func GetURLSafePath(path string) (safePath string, err error) {
 	return
 }
 
-func FormatResponse(response *CosResponse) (ret string) {
+func FormatResponse(response *Response) (ret string) {
 	ret = "%v: %v: %v\n"
 	httpcode := response.HTTPCode
 	code := response.Code
@@ -42,7 +42,7 @@ func FormatResponse(response *CosResponse) (ret string) {
 	return
 }
 
-func (cos *Cos) UploadFile(filePath, bucket, path string) (ret *CosResponse, err error) {
+func (cos *Cos) UploadFile(filePath, bucket, path string) (ret *Response, err error) {
 	file, err := os.Open(filePath)
 	if err != nil {
 		return
@@ -65,7 +65,7 @@ func (cos *Cos) UploadFile(filePath, bucket, path string) (ret *CosResponse, err
 	return
 }
 
-func (cos *Cos) UploadFolder(folderPath, bucket, path string) (ret []*CosResponse, err error) {
+func (cos *Cos) UploadFolder(folderPath, bucket, path string) (ret []*Response, err error) {
 	list, err := ioutil.ReadDir(folderPath)
 	if err != nil {
 		return
@@ -76,7 +76,7 @@ func (cos *Cos) UploadFolder(folderPath, bucket, path string) (ret []*CosRespons
 	}
 	log.Printf("%v: %v", path, r.Message)
 	ret = append(ret, r)
-	chRet := make(chan []*CosResponse)
+	chRet := make(chan []*Response)
 	chErr := make(chan error)
 	for _, i := range list {
 		if i.IsDir() {
@@ -94,7 +94,7 @@ func (cos *Cos) UploadFolder(folderPath, bucket, path string) (ret []*CosRespons
 				if err != nil {
 					chErr <- err
 				}
-				chRet <- []*CosResponse{ret}
+				chRet <- []*Response{ret}
 			}(i.Name())
 		}
 	}
@@ -174,12 +174,12 @@ func (cos *Cos) Scan(bucket, path string, depth int) (ret []map[string]interface
 	return
 }
 
-func (cos *Cos) Delete(bucket, path string) (ret []*CosResponse, err error) {
+func (cos *Cos) Delete(bucket, path string) (ret []*Response, err error) {
 	fileList, err := cos.Scan(bucket, path, 1)
 	if err != nil {
 		return
 	}
-	chRet := make(chan []*CosResponse)
+	chRet := make(chan []*Response)
 	chErr := make(chan error)
 	for _, i := range fileList {
 		if _, ok := i["sha"]; ok {
@@ -190,7 +190,7 @@ func (cos *Cos) Delete(bucket, path string) (ret []*CosResponse, err error) {
 					return
 				}
 				log.Printf("%v: %v", path, ret.Message)
-				chRet <- []*CosResponse{ret}
+				chRet <- []*Response{ret}
 			}(i["path"].(string))
 		} else {
 			go func(name string) {
