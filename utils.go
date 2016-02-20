@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -61,7 +60,7 @@ func (cos *Cos) UploadFile(filePath, bucket, path string) (ret *Response, err er
 	if err != nil {
 		return
 	}
-	log.Printf("%v: %v", path, ret.Message)
+	Logger.Printf("%v: %v", path, ret.Message)
 	return
 }
 
@@ -74,7 +73,7 @@ func (cos *Cos) UploadFolder(folderPath, bucket, path string) (ret []*Response, 
 	if err != nil {
 		return
 	}
-	log.Printf("%v: %v", path, r.Message)
+	Logger.Printf("%v: %v", path, r.Message)
 	ret = append(ret, r)
 	chRet := make(chan []*Response)
 	chErr := make(chan error)
@@ -189,7 +188,7 @@ func (cos *Cos) Delete(bucket, path string) (ret []*Response, err error) {
 					chErr <- err
 					return
 				}
-				log.Printf("%v: %v", path, ret.Message)
+				Logger.Printf("%v: %v", path, ret.Message)
 				chRet <- []*Response{ret}
 			}(i["path"].(string))
 		} else {
@@ -220,7 +219,7 @@ func (cos *Cos) Delete(bucket, path string) (ret []*Response, err error) {
 	if err != nil {
 		return
 	}
-	log.Printf("%v: %v", path, r.Message)
+	Logger.Printf("%v: %v", path, r.Message)
 	ret = append(ret, r)
 	return
 }
@@ -273,7 +272,7 @@ func (cos *Cos) DownloadFile(bucket, path, localPath string) (err error) {
 	if err != nil {
 		return
 	}
-	log.Printf("%v: %v", localPath, "成功")
+	Logger.Printf("%v: %v", localPath, "成功")
 	return
 }
 
@@ -290,7 +289,7 @@ func (cos *Cos) DownloadFolder(bucket, path, localPath string) (err error) {
 			if err != nil {
 				return
 			}
-			log.Printf("%v: %v", dstPath, "成功")
+			Logger.Printf("%v: %v", dstPath, "成功")
 		}
 	}
 	chErr := make(chan error)
