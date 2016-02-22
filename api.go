@@ -15,11 +15,12 @@ import (
 )
 
 const (
-	COSEndPoint    = "http://web.file.myqcloud.com/files/v1/"
-	ExpiredSeconds = 600
-	ListBoth       = "eListBoth"
-	ListFileOnly   = "eListFileOnly"
-	ListDirOnly    = "eListDirOnly"
+	COSEndPoint     = "http://web.file.myqcloud.com/files/v1/%v/%v/%v" // appid, bucket name, path
+	COSFileEndPoint = "http://%v-%v.file.myqcloud.com/%v"              // bucket name, appid, path
+	ExpiredSeconds  = 600
+	ListBoth        = "eListBoth"
+	ListFileOnly    = "eListFileOnly"
+	ListDirOnly     = "eListDirOnly"
 )
 
 type Config struct {
@@ -70,7 +71,7 @@ func (cos *Cos) getExpired() int64 {
 }
 
 func (cos *Cos) GetResURL(bucket, path string) string {
-	return COSEndPoint + cos.Appid + "/" + bucket + "/" + path
+	return fmt.Sprintf(COSEndPoint, cos.Appid, bucket, path)
 }
 
 func (cos *Cos) CreateFolder(bucket, path string) (ret *Response, err error) {

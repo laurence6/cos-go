@@ -225,7 +225,7 @@ func (cos *Cos) Delete(bucket, path string) (ret []*Response, err error) {
 }
 
 func (cos *Cos) GetAccessURL(bucket, path string) string {
-	return fmt.Sprintf("http://%s-%s.file.myqcloud.com/%s", bucket, cos.Appid, path)
+	return fmt.Sprintf(COSFileEndPoint, bucket, cos.Appid, path)
 }
 
 func (cos *Cos) GetAccessURLWithToken(bucket, path string, expireTime int64) string {
