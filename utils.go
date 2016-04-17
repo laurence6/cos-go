@@ -188,7 +188,7 @@ func (cos *Cos) Delete(bucket, path string) (ret []*Response, err error) {
 					chErr <- err
 					return
 				}
-				Logger.Printf("%v: %v", path, ret.Message)
+				Logger.Printf("%v: %v", name, ret.Message)
 				chRet <- []*Response{ret}
 			}(i["path"].(string))
 		} else {
