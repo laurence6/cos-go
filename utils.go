@@ -272,7 +272,7 @@ func (cos *Cos) DownloadFile(bucket, path, localPath string) (err error) {
 	if err != nil {
 		return
 	}
-	Logger.Printf("%v: %v", localPath, "成功")
+	Logger.Printf("%v: %v", localPath, "SUCCESS")
 	return
 }
 
@@ -289,7 +289,7 @@ func (cos *Cos) DownloadFolder(bucket, path, localPath string) (err error) {
 			if err != nil {
 				return
 			}
-			Logger.Printf("%v: %v", dstPath, "成功")
+			Logger.Printf("%v: %v", dstPath, "SUCCESS")
 		}
 	}
 	chErr := make(chan error)
