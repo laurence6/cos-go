@@ -10,6 +10,7 @@ import (
 	"mime/multipart"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -111,7 +112,7 @@ func (cos *Cos) Upload(file io.Reader, bucket, path string) (ret *Response, err 
 	writer := multipart.NewWriter(buffer)
 	writer.WriteField("op", "upload")
 	writer.WriteField("sha", sha)
-	writer.WriteField("insertOnly", fmt.Sprint(cos.InsertOnly))
+	writer.WriteField("insertOnly", strconv.Itoa(cos.InsertOnly))
 	formfile, _ := writer.CreateFormFile("filecontent", path)
 	_, err = formfile.Write(filecontent)
 	if err != nil {
@@ -139,9 +140,9 @@ func (cos *Cos) uploadSlicePrepare(bucket, path string, fileSize int64, sha stri
 	buffer := &bytes.Buffer{}
 	writer := multipart.NewWriter(buffer)
 	writer.WriteField("op", "upload_slice")
-	writer.WriteField("filesize", fmt.Sprint(fileSize))
+	writer.WriteField("filesize", strconv.FormatInt(fileSize, 10))
 	writer.WriteField("sha", sha)
-	writer.WriteField("insertOnly", fmt.Sprint(cos.InsertOnly))
+	writer.WriteField("insertOnly", strconv.Itoa(cos.InsertOnly))
 	writer.Close()
 
 	request, _ := http.NewRequest("POST", requestURL, buffer)
@@ -167,8 +168,8 @@ func (cos *Cos) uploadSliceData(filecontent []byte, bucket, path, session string
 	writer.WriteField("op", "upload_slice")
 	writer.WriteField("sha", sha)
 	writer.WriteField("session", session)
-	writer.WriteField("offset", fmt.Sprint(offset))
-	writer.WriteField("insertOnly", fmt.Sprint(cos.InsertOnly))
+	writer.WriteField("offset", strconv.FormatInt(offset, 10))
+	writer.WriteField("insertOnly", strconv.Itoa(cos.InsertOnly))
 	formfile, _ := writer.CreateFormFile("filecontent", path)
 	_, err = formfile.Write(filecontent)
 	if err != nil {
