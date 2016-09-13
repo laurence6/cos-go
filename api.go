@@ -32,7 +32,7 @@ type Config struct {
 type Cos struct {
 	Config
 	ExpiredSeconds int64
-	insertOnly     int
+	InsertOnly     int
 	Client         http.Client
 }
 
