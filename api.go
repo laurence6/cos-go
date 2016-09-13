@@ -32,6 +32,7 @@ type Config struct {
 type Cos struct {
 	Config
 	ExpiredSeconds int64
+	insertOnly     int
 	Client         http.Client
 }
 
@@ -62,7 +63,7 @@ func ProcessResponse(httpResponse *http.Response) (cosResponse *Response, err er
 }
 
 func New(appid, secretID, secretKey string) (cos *Cos) {
-	cos = &Cos{Config{appid, secretID, secretKey}, ExpiredSeconds, http.Client{}}
+	cos = &Cos{Config{appid, secretID, secretKey}, ExpiredSeconds, 1, http.Client{}}
 	return
 }
 
@@ -110,6 +111,7 @@ func (cos *Cos) Upload(file io.Reader, bucket, path string) (ret *Response, err 
 	writer := multipart.NewWriter(buffer)
 	writer.WriteField("op", "upload")
 	writer.WriteField("sha", sha)
+	writer.WriteField("insertOnly", fmt.Sprint(cos.InsertOnly))
 	formfile, _ := writer.CreateFormFile("filecontent", path)
 	_, err = formfile.Write(filecontent)
 	if err != nil {
@@ -139,6 +141,7 @@ func (cos *Cos) uploadSlicePrepare(bucket, path string, fileSize int64, sha stri
 	writer.WriteField("op", "upload_slice")
 	writer.WriteField("filesize", fmt.Sprint(fileSize))
 	writer.WriteField("sha", sha)
+	writer.WriteField("insertOnly", fmt.Sprint(cos.InsertOnly))
 	writer.Close()
 
 	request, _ := http.NewRequest("POST", requestURL, buffer)
@@ -165,6 +168,7 @@ func (cos *Cos) uploadSliceData(filecontent []byte, bucket, path, session string
 	writer.WriteField("sha", sha)
 	writer.WriteField("session", session)
 	writer.WriteField("offset", fmt.Sprint(offset))
+	writer.WriteField("insertOnly", fmt.Sprint(cos.InsertOnly))
 	formfile, _ := writer.CreateFormFile("filecontent", path)
 	_, err = formfile.Write(filecontent)
 	if err != nil {
