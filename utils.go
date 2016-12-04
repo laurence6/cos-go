@@ -110,12 +110,11 @@ func (cos *Cos) UploadFolder(folderPath, bucket, path string) (ret []*Response, 
 	return
 }
 
-/*Scan scan specified folder or file
-* depth > 0:
-*     scan specified levels
-* depth < 0:
-*     scan recursively
- */
+//Scan scan specified folder or file
+//depth > 0:
+//    scan specified levels
+//depth < 0:
+//    scan recursively
 func (cos *Cos) Scan(bucket, path string, depth int) (ret []map[string]interface{}, err error) {
 	if depth == 0 {
 		return
