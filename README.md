@@ -1,3 +1,7 @@
+# DEPRECATED
+
+Tencent Qcloud COS updated its RESTful API. This library does not support the new API. I am no longer maintaining this library.
+
 # cos-go
 
 Tencent Qcloud Cloud Object Service RESTful JSON API Go library.
