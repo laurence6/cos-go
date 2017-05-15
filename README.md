@@ -1,8 +1,8 @@
 # cos-go
 
-Tencent Qcloud Cloud Object Service RESTful API Go library.
+Tencent Qcloud Cloud Object Service RESTful JSON API Go library.
 
-腾讯云 对象存储服务(COS) RESTful API Go 语言库。
+腾讯云 对象存储服务(COS) RESTful JSON API Go 语言库。
 
 ## License
 
